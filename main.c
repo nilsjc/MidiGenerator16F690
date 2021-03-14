@@ -18,8 +18,11 @@
 
 #include <xc.h>
 const unsigned char MAX_NOTE = 96;
+const unsigned char MIDI_CHANNEL = 0;
+const unsigned char NOTE_ON = 0x90 + MIDI_CHANNEL;
+const unsigned char NOTE_OFF = 0x80 + MIDI_CHANNEL;
 char shortDelay = 0;
-void createDelay(void);
+int loopLength(void);
 
 unsigned char convert(char input){
     ADCON0bits.CHS = input;
@@ -62,44 +65,44 @@ void main(void) {
     TRISC = 0x00;
     ADFM = 0;
     int y = 0;
-    char out = 1;
+    char out = 0;
     unsigned char notes[11] = {24,28,31,34,36,48,47,46,43,31,36};
+    unsigned char melodyLength = sizeof(notes)/sizeof(notes[0]);
     unsigned char velo[4] = {100,60,80,70};
     while(1)
     {
         unsigned char note;
-        for(y=0; y < 11; y++)
+        for(y=0; y < melodyLength; y++)
         {
-            createDelay();
+            int loop = 0;
             note = notes[y] + (convert(1)>>3);  // you can change note with 31 semitones
             if(note> MAX_NOTE){
                 note = MAX_NOTE;
             }
-            UART_Write(0x90);
+            UART_Write(NOTE_ON);
             UART_Write(note);
             UART_Write(velo[(y % 4)]);
-            out++;
+            for(loop = 0; loop < loopLength(); loop++ )
+            { }
+            
             PORTC = out;
-            createDelay();
-            UART_Write(0x80);
+            out++;
+            UART_Write(NOTE_OFF);
             UART_Write(note);
             UART_Write(0);
+            for(loop = 0; loop < loopLength(); loop++ )
+            { }
         }
     }
     return;
 }
 
-void createDelay(void){
-    int x = 0;
+int loopLength(void){
     unsigned char speed = 1;
-    unsigned int speedLoop = 1;
     speed = convert(0);
     if(speed<2)
     {
         speed = 2;
     }
-    speedLoop = speed << 8;
-    for(x = 0; x < speedLoop; x++){
-
-    }
+    return speed << 6;
 }
