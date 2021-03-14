@@ -17,7 +17,15 @@
 #pragma config FCMEN = ON       // Fail-Safe Clock Monitor Enabled bit (Fail-Safe Clock Monitor is enabled)
 
 #include <xc.h>
-unsigned char convert(void){
+const unsigned char MAX_NOTE = 96;
+char shortDelay = 0;
+void createDelay(void);
+
+unsigned char convert(char input){
+    ADCON0bits.CHS = input;
+    for(shortDelay=0; shortDelay<10;shortDelay++){
+        
+    }
     ADCON0bits.GO_DONE = 1;
     while(ADCON0bits.GO_DONE){
         
@@ -48,53 +56,50 @@ void main(void) {
     
     TRISA = 0b00000001;
     ANSELbits.ANS0 = 1;     // ANS0 = analog pin
+    ANSELbits.ANS1 = 1;     // ANS1 = analog pin
     ADCON0bits.CHS = 0;     // A/D Channel   
     ADCON0bits.ADON = 1;    // Activate A/Domvandlaren
     TRISC = 0x00;
     ADFM = 0;
-    int x = 0;
     int y = 0;
-    int i = 0;
     char out = 1;
-    unsigned char speed = 1;
-    unsigned int speedLoop = 1;
-    unsigned char notes[11] = {40,42,44,45,47,49,30,34,32,37,35};
-    unsigned char velo[7] = {120,100,60,100,80,120,90};
+    unsigned char notes[11] = {24,28,31,34,36,48,47,46,43,31,36};
+    unsigned char velo[4] = {100,60,80,70};
     while(1)
     {
-        speed = convert();
-        if(speed<2){
-            speed = 2;
-        }
-        speedLoop = speed << 8;
-        for(y = 0; y < 11; y++){
-            
-            for(x = 0; x < speedLoop; x++){
-            
+        unsigned char note;
+        for(y=0; y < 11; y++)
+        {
+            createDelay();
+            note = notes[y] + (convert(1)>>3);  // you can change note with 31 semitones
+            if(note> MAX_NOTE){
+                note = MAX_NOTE;
             }
             UART_Write(0x90);
-            UART_Write(notes[y]);
-            UART_Write(velo[i]);
+            UART_Write(note);
+            UART_Write(velo[(y % 4)]);
             out++;
-            i++;
-            if(i>6){
-                i=0;
-            }
             PORTC = out;
-            speed = convert();
-            if(speed<2)
-            {
-                speed = 2;
-            }
-            speedLoop = speed << 8;
-            for(x = 0; x < speedLoop; x++){
-            
-            }
+            createDelay();
             UART_Write(0x80);
-            UART_Write(notes[y]);
+            UART_Write(note);
             UART_Write(0);
         }
-        
     }
     return;
+}
+
+void createDelay(void){
+    int x = 0;
+    unsigned char speed = 1;
+    unsigned int speedLoop = 1;
+    speed = convert(0);
+    if(speed<2)
+    {
+        speed = 2;
+    }
+    speedLoop = speed << 8;
+    for(x = 0; x < speedLoop; x++){
+
+    }
 }
